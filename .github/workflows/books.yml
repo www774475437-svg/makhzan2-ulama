@@ -1,0 +1,36 @@
+name: Books store
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    - cron: "17 3 * * 1" # weekly: picks up books added to the library's list
+
+permissions:
+  contents: write
+
+concurrency:
+  group: books
+  cancel-in-progress: false
+
+jobs:
+  books:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@v4
+      - name: Books kept from earlier runs
+        uses: actions/cache@v4
+        with:
+          path: bookcache
+          key: books-${{ github.run_id }}
+          restore-keys: books-
+      - name: Fetch what is missing from «تراث», then compress
+        run: python3 tool/fetch.py
+      - name: Publish the store
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: out
+          force_orphan: true
